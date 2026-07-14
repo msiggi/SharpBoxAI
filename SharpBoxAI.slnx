@@ -1,3 +1,7 @@
 <Solution>
-  <Project Path="src/SharpBoxAI/SharpBoxAI.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/SharpBoxAI.ImapMcpServer.TestClient/SharpBoxAI.ImapMcpServer.TestClient.csproj" />
+    <Project Path="src/SharpBoxAI.ImapMcpServer/SharpBoxAI.ImapMcpServer.csproj" />
+    <Project Path="src/SharpBoxAI/SharpBoxAI.csproj" />
+  </Folder>
 </Solution>
