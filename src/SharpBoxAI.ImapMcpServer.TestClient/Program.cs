@@ -40,26 +40,50 @@ foreach (var tool in tools)
     Console.WriteLine($"  - {tool.Name}: {tool.Description}");
 }
 
-Console.WriteLine();
-Console.WriteLine("Rufe list_unread_emails auf ...");
-Console.WriteLine(new string('=', 60));
+// Nur die lesenden Tools werden automatisch aufgerufen — move_email,
+// delete_email, mark_as_spam usw. verändern das Postfach und bleiben
+// bewusst dem MCP-Client (z.B. Claude) überlassen.
+var exitCode = 0;
 
-var result = await client.CallToolAsync("list_unread_emails");
-
-foreach (var block in result.Content)
+async Task<string> CallAndPrintAsync(string toolName, IReadOnlyDictionary<string, object?>? arguments = null)
 {
-    if (block is TextContentBlock text)
+    Console.WriteLine();
+    Console.WriteLine($"Rufe {toolName} auf ...");
+    Console.WriteLine(new string('=', 60));
+
+    var result = await client.CallToolAsync(toolName, arguments);
+    var output = new System.Text.StringBuilder();
+
+    foreach (var block in result.Content)
     {
-        Console.WriteLine(text.Text);
+        if (block is TextContentBlock text)
+        {
+            Console.WriteLine(text.Text);
+            output.AppendLine(text.Text);
+        }
     }
+
+    Console.WriteLine(new string('=', 60));
+
+    if (result.IsError == true)
+    {
+        Console.Error.WriteLine($"{toolName} hat einen Fehler gemeldet.");
+        exitCode = 1;
+    }
+
+    return output.ToString();
 }
 
-Console.WriteLine(new string('=', 60));
+var unreadOutput = await CallAndPrintAsync("list_unread_emails");
+await CallAndPrintAsync("list_read_emails", new Dictionary<string, object?> { ["maxCount"] = 5 });
+await CallAndPrintAsync("list_folders");
 
-if (result.IsError == true)
+// get_email mit der ersten gefundenen UID testen (rein lesend)
+var uidMatch = System.Text.RegularExpressions.Regex.Match(unreadOutput, @"UID: (\d+)");
+if (uidMatch.Success)
 {
-    Console.Error.WriteLine("Tool-Aufruf hat einen Fehler gemeldet.");
-    return 1;
+    var uid = uint.Parse(uidMatch.Groups[1].Value);
+    await CallAndPrintAsync("get_email", new Dictionary<string, object?> { ["uid"] = uid });
 }
 
-return 0;
+return exitCode;
