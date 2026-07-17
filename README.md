@@ -10,7 +10,7 @@ SharpBoxAI implements the [Model Context Protocol (MCP)](https://modelcontextpro
 - **Organize the inbox**: move messages to folders, put them in the trash (nothing is deleted permanently), mark them as spam
 - **Manage flags**: mark as read/unread, flag/unflag messages
 - **Provider-independent**: works with any IMAP server; special folders (trash, spam) are detected via the IMAP `SPECIAL-USE` extension, with a fallback to common German and English folder names for servers that don't support it
-- **Secure configuration**: credentials come from .NET user secrets or environment variables — never from files checked into the repository
+- **Secure configuration**: credentials are best kept in .NET user secrets or environment variables, so they never end up in files checked into the repository
 
 ### Available MCP tools
 
@@ -34,7 +34,7 @@ src/
 │   ├── Program.cs                       # Host setup, configuration, MCP registration
 │   ├── EmailTools.cs                    # All MCP tools (MailKit/IMAP)
 │   ├── ImapSettings.cs                  # Configuration model
-│   └── appsettings.json                 # Host/port/SSL (no credentials)
+│   └── appsettings.json                 # IMAP connection settings
 ├── SharpBoxAI.ImapMcpServer.TestClient/ # Console client for testing the read-only tools
 └── SharpBoxAI/                          # Placeholder for future extensions
 ```
@@ -48,19 +48,21 @@ Packages used: [MailKit](https://github.com/jstedfast/MailKit) for IMAP, the off
 
 ## Configuration
 
-Host, port, and SSL are configured in `src/SharpBoxAI.ImapMcpServer/appsettings.json`:
+The IMAP connection is configured in `src/SharpBoxAI.ImapMcpServer/appsettings.json`:
 
 ```json
 {
   "Imap": {
     "Host": "imap.example.com",
     "Port": 993,
-    "UseSsl": true
+    "UseSsl": true,
+    "User": "",
+    "Password": ""
   }
 }
 ```
 
-Credentials do **not** belong in `appsettings.json`; put them in the user secrets instead:
+The `User` and `Password` fields show where your account goes, but are intentionally left empty: to avoid accidentally committing credentials, prefer storing them in the user secrets instead:
 
 ```bash
 cd src/SharpBoxAI.ImapMcpServer
@@ -113,7 +115,7 @@ dotnet run --project src/SharpBoxAI.ImapMcpServer.TestClient
 
 ## Security & design decisions
 
-- **No credentials in the repository**: username and password come exclusively from user secrets or environment variables.
+- **No credentials in the repository**: the checked-in `appsettings.json` ships with empty `User`/`Password` fields; user secrets and environment variables are the recommended place for real credentials.
 - **No permanent deletion**: `delete_email` only moves messages to the trash. If no trash folder is found, nothing happens.
 - **Reading really is just reading**: listing and fetching messages opens the inbox read-only and does not modify any flags.
 - **No sending of mail**: the server can only read and organize — SMTP is deliberately not included.
@@ -122,4 +124,4 @@ dotnet run --project src/SharpBoxAI.ImapMcpServer.TestClient
 
 ## License
 
-Not yet decided.
+This project is licensed under the [MIT License](LICENSE).
