@@ -1,32 +1,57 @@
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
-// Repo-Root über die Solution-Datei finden, damit der Client aus jedem
-// Arbeitsverzeichnis heraus funktioniert (dotnet run, VS, Explorer).
-var dir = new DirectoryInfo(AppContext.BaseDirectory);
-while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "SharpBoxAI.slnx")))
+// Ohne Argument: Server selbst per stdio starten (wie bisher).
+// Mit "--http [url]": Verbindung zu einem bereits laufenden HTTP-Server,
+// Standard-URL ist http://localhost:5100.
+var httpModus = args.Contains("--http");
+
+IClientTransport transport;
+
+if (httpModus)
 {
-    dir = dir.Parent;
+    var url = args.SkipWhile(a => a != "--http").Skip(1).FirstOrDefault() ?? "http://localhost:5100";
+
+    Console.WriteLine($"Verbinde per Streamable HTTP: {url}");
+    Console.WriteLine("(der Server muss bereits laufen: dotnet run --project src/SharpBoxAI.ImapMcpServer -- --http)");
+    Console.WriteLine();
+
+    transport = new HttpClientTransport(new HttpClientTransportOptions
+    {
+        Name = "SharpBoxAI.ImapMcpServer (HTTP)",
+        Endpoint = new Uri(url),
+        TransportMode = HttpTransportMode.StreamableHttp,
+    });
 }
-
-if (dir is null)
+else
 {
-    Console.Error.WriteLine("SharpBoxAI.slnx nicht gefunden — bitte aus dem Repository heraus starten.");
-    return 1;
+    // Repo-Root über die Solution-Datei finden, damit der Client aus jedem
+    // Arbeitsverzeichnis heraus funktioniert (dotnet run, VS, Explorer).
+    var dir = new DirectoryInfo(AppContext.BaseDirectory);
+    while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "SharpBoxAI.slnx")))
+    {
+        dir = dir.Parent;
+    }
+
+    if (dir is null)
+    {
+        Console.Error.WriteLine("SharpBoxAI.slnx nicht gefunden — bitte aus dem Repository heraus starten.");
+        return 1;
+    }
+
+    var serverProject = Path.Combine(dir.FullName, "src", "SharpBoxAI.ImapMcpServer");
+
+    Console.WriteLine($"Starte MCP-Server: {serverProject}");
+    Console.WriteLine("(vorher \"dotnet build\" ausführen — der Server wird mit --no-build gestartet)");
+    Console.WriteLine();
+
+    transport = new StdioClientTransport(new StdioClientTransportOptions
+    {
+        Name = "SharpBoxAI.ImapMcpServer",
+        Command = "dotnet",
+        Arguments = ["run", "--project", serverProject, "--no-build"],
+    });
 }
-
-var serverProject = Path.Combine(dir.FullName, "src", "SharpBoxAI.ImapMcpServer");
-
-Console.WriteLine($"Starte MCP-Server: {serverProject}");
-Console.WriteLine("(vorher \"dotnet build\" ausführen — der Server wird mit --no-build gestartet)");
-Console.WriteLine();
-
-var transport = new StdioClientTransport(new StdioClientTransportOptions
-{
-    Name = "SharpBoxAI.ImapMcpServer",
-    Command = "dotnet",
-    Arguments = ["run", "--project", serverProject, "--no-build"],
-});
 
 await using var client = await McpClient.CreateAsync(transport);
 
