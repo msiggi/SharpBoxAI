@@ -1,54 +1,54 @@
 # SharpBoxAI
 
-**Ein MCP-Server in C#/.NET, der Dein E-Mail-Postfach per IMAP für KI-Assistenten wie Claude zugänglich macht.**
+**An MCP server written in C#/.NET that makes your e-mail inbox accessible to AI assistants like Claude via IMAP.**
 
-SharpBoxAI implementiert das [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) und stellt einem MCP-Client (z. B. Claude Desktop) eine Reihe von E-Mail-Tools zur Verfügung. Damit kann der Assistent auf natürliche Sprache hin ungelesene Mails zusammenfassen, Newsletter aussortieren, Spam wegräumen oder das Postfach aufräumen — ohne dass Zugangsdaten jemals den eigenen Rechner verlassen: Der Server läuft lokal und spricht direkt mit dem IMAP-Server des eigenen Mail-Providers.
+SharpBoxAI implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) and provides an MCP client (e.g. Claude Desktop) with a set of e-mail tools. This lets the assistant respond to natural-language requests: summarize unread mail, sort out newsletters, clean up spam, or tidy the inbox — without your credentials ever leaving your machine. The server runs locally and talks directly to your mail provider's IMAP server.
 
 ## Features
 
-- **Postfach lesen**: ungelesene und gelesene Mails auflisten, einzelne Mails inkl. Text-Inhalt und Anhang-Namen abrufen — rein lesend, ohne das Gelesen-Flag zu verändern
-- **Postfach organisieren**: Mails in Ordner verschieben, in den Papierkorb legen (nichts wird endgültig gelöscht), als Spam markieren
-- **Flags verwalten**: gelesen/ungelesen setzen, Mails flaggen/entflaggen
-- **Provider-unabhängig**: funktioniert mit jedem IMAP-Server; Spezialordner (Papierkorb, Spam) werden per IMAP-`SPECIAL-USE` erkannt, mit Fallback auf gängige deutsche und englische Ordnernamen für Server ohne diese Erweiterung
-- **Sichere Konfiguration**: Zugangsdaten kommen aus .NET User Secrets oder Umgebungsvariablen — nie aus eingecheckten Dateien
+- **Read the inbox**: list unread and read messages, fetch individual messages including text content and attachment names — strictly read-only, without touching the seen flag
+- **Organize the inbox**: move messages to folders, put them in the trash (nothing is deleted permanently), mark them as spam
+- **Manage flags**: mark as read/unread, flag/unflag messages
+- **Provider-independent**: works with any IMAP server; special folders (trash, spam) are detected via the IMAP `SPECIAL-USE` extension, with a fallback to common German and English folder names for servers that don't support it
+- **Secure configuration**: credentials come from .NET user secrets or environment variables — never from files checked into the repository
 
-### Verfügbare MCP-Tools
+### Available MCP tools
 
-| Tool | Beschreibung |
+| Tool | Description |
 |---|---|
-| `list_unread_emails` | Listet ungelesene Mails im Posteingang (UID, Betreff, Absender, Datum) |
-| `list_read_emails` | Listet gelesene Mails, neueste zuerst (Anzahl begrenzbar, Standard 20) |
-| `get_email` | Liest eine Mail anhand ihrer UID: Header, Text-Inhalt, Anhang-Namen |
-| `list_folders` | Listet alle Ordner des Postfachs |
-| `move_email` | Verschiebt eine Mail in einen anderen Ordner |
-| `delete_email` | Verschiebt eine Mail in den Papierkorb (kein endgültiges Löschen) |
-| `mark_as_spam` | Verschiebt eine Mail in den Spam-/Junk-Ordner |
-| `mark_as_read` / `mark_as_unread` | Setzt bzw. entfernt das Gelesen-Flag |
-| `flag_email` / `unflag_email` | Setzt bzw. entfernt die Flagge (`\Flagged`) |
+| `list_unread_emails` | Lists unread messages in the inbox (UID, subject, sender, date) |
+| `list_read_emails` | Lists read messages, newest first (count is limitable, default 20) |
+| `get_email` | Reads a message by its UID: headers, text content, attachment names |
+| `list_folders` | Lists all folders of the mailbox |
+| `move_email` | Moves a message to another folder |
+| `delete_email` | Moves a message to the trash (no permanent deletion) |
+| `mark_as_spam` | Moves a message to the spam/junk folder |
+| `mark_as_read` / `mark_as_unread` | Sets or clears the seen flag |
+| `flag_email` / `unflag_email` | Sets or clears the flag (`\Flagged`) |
 
-## Projektstruktur
+## Project structure
 
 ```
 src/
-├── SharpBoxAI.ImapMcpServer/            # Der MCP-Server (stdio-Transport)
-│   ├── Program.cs                       # Host-Setup, Konfiguration, MCP-Registrierung
-│   ├── EmailTools.cs                    # Alle MCP-Tools (MailKit/IMAP)
-│   ├── ImapSettings.cs                  # Konfigurationsmodell
-│   └── appsettings.json                 # Host/Port/SSL (ohne Zugangsdaten)
-├── SharpBoxAI.ImapMcpServer.TestClient/ # Konsolen-Client zum Testen der lesenden Tools
-└── SharpBoxAI/                          # Platzhalter für zukünftige Erweiterungen
+├── SharpBoxAI.ImapMcpServer/            # The MCP server (stdio transport)
+│   ├── Program.cs                       # Host setup, configuration, MCP registration
+│   ├── EmailTools.cs                    # All MCP tools (MailKit/IMAP)
+│   ├── ImapSettings.cs                  # Configuration model
+│   └── appsettings.json                 # Host/port/SSL (no credentials)
+├── SharpBoxAI.ImapMcpServer.TestClient/ # Console client for testing the read-only tools
+└── SharpBoxAI/                          # Placeholder for future extensions
 ```
 
-Verwendete Pakete: [MailKit](https://github.com/jstedfast/MailKit) für IMAP, das offizielle [ModelContextProtocol C# SDK](https://github.com/modelcontextprotocol/csharp-sdk) für MCP.
+Packages used: [MailKit](https://github.com/jstedfast/MailKit) for IMAP, the official [ModelContextProtocol C# SDK](https://github.com/modelcontextprotocol/csharp-sdk) for MCP.
 
-## Voraussetzungen
+## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- Ein E-Mail-Konto mit IMAP-Zugang
+- An e-mail account with IMAP access
 
-## Konfiguration
+## Configuration
 
-Host, Port und SSL werden in `src/SharpBoxAI.ImapMcpServer/appsettings.json` konfiguriert:
+Host, port, and SSL are configured in `src/SharpBoxAI.ImapMcpServer/appsettings.json`:
 
 ```json
 {
@@ -60,27 +60,27 @@ Host, Port und SSL werden in `src/SharpBoxAI.ImapMcpServer/appsettings.json` kon
 }
 ```
 
-Die Zugangsdaten gehören **nicht** in die `appsettings.json`, sondern in die User Secrets:
+Credentials do **not** belong in `appsettings.json`; put them in the user secrets instead:
 
 ```bash
 cd src/SharpBoxAI.ImapMcpServer
 dotnet user-secrets set "Imap:User" "user@example.com"
-dotnet user-secrets set "Imap:Password" "geheim"
+dotnet user-secrets set "Imap:Password" "secret"
 ```
 
-Alternativ (mit höchster Priorität) per Umgebungsvariablen: `IMAP_HOST`, `IMAP_USER`, `IMAP_PASSWORD`.
+Alternatively (with highest priority), use the environment variables `IMAP_HOST`, `IMAP_USER`, `IMAP_PASSWORD`.
 
-## Verwendung
+## Usage
 
-### Bauen
+### Build
 
 ```bash
 dotnet build
 ```
 
-### Mit Claude Desktop verbinden
+### Connect to Claude Desktop
 
-In der Claude-Desktop-Konfiguration (`claude_desktop_config.json`) den Server als MCP-Server eintragen:
+Register the server as an MCP server in the Claude Desktop configuration (`claude_desktop_config.json`):
 
 ```json
 {
@@ -90,7 +90,7 @@ In der Claude-Desktop-Konfiguration (`claude_desktop_config.json`) den Server al
       "args": [
         "run",
         "--project",
-        "/pfad/zum/repo/src/SharpBoxAI.ImapMcpServer",
+        "/path/to/repo/src/SharpBoxAI.ImapMcpServer",
         "--no-build"
       ]
     }
@@ -98,28 +98,28 @@ In der Claude-Desktop-Konfiguration (`claude_desktop_config.json`) den Server al
 }
 ```
 
-Danach Claude Desktop neu starten — die E-Mail-Tools stehen dann im Chat zur Verfügung, z. B.:
+Then restart Claude Desktop — the e-mail tools are now available in the chat, for example:
 
-> „Fasse meine ungelesenen Mails zusammen und verschiebe alle Newsletter in den Ordner ‚Newsletter‘."
+> "Summarize my unread mail and move all newsletters to the 'Newsletter' folder."
 
-### Test-Client
+### Test client
 
-Der mitgelieferte Test-Client startet den Server, listet die verfügbaren Tools auf und ruft die **rein lesenden** Tools automatisch auf (`list_unread_emails`, `list_read_emails`, `list_folders`, `get_email`). Verändernde Tools wie `move_email` oder `delete_email` werden bewusst nicht automatisch ausgeführt.
+The included test client starts the server, lists the available tools, and automatically calls the **read-only** tools (`list_unread_emails`, `list_read_emails`, `list_folders`, `get_email`). Tools that modify the mailbox, such as `move_email` or `delete_email`, are deliberately not executed automatically.
 
 ```bash
 dotnet build
 dotnet run --project src/SharpBoxAI.ImapMcpServer.TestClient
 ```
 
-## Sicherheit & Design-Entscheidungen
+## Security & design decisions
 
-- **Keine Zugangsdaten im Repository**: Benutzer und Passwort kommen ausschließlich aus User Secrets oder Umgebungsvariablen.
-- **Kein endgültiges Löschen**: `delete_email` verschiebt nur in den Papierkorb. Wird kein Papierkorb gefunden, passiert nichts.
-- **Lesen ist wirklich nur Lesen**: Auflisten und Abrufen von Mails öffnet den Posteingang read-only und verändert keine Flags.
-- **Kein Senden von Mails**: Der Server kann ausschließlich lesen und organisieren — SMTP ist bewusst nicht angebunden.
-- **Begrenzte Ausgaben**: Mail-Inhalte werden auf 10.000 Zeichen gekürzt, Listen auf die neuesten Treffer begrenzt, damit der Kontext des MCP-Clients nicht überläuft.
-- **Logging auf stderr**: stdout ist für das MCP-Protokoll reserviert.
+- **No credentials in the repository**: username and password come exclusively from user secrets or environment variables.
+- **No permanent deletion**: `delete_email` only moves messages to the trash. If no trash folder is found, nothing happens.
+- **Reading really is just reading**: listing and fetching messages opens the inbox read-only and does not modify any flags.
+- **No sending of mail**: the server can only read and organize — SMTP is deliberately not included.
+- **Bounded output**: message bodies are truncated at 10,000 characters and listings are limited to the newest matches, so the MCP client's context does not overflow.
+- **Logging goes to stderr**: stdout is reserved for the MCP protocol.
 
-## Lizenz
+## License
 
-Noch nicht festgelegt.
+Not yet decided.
