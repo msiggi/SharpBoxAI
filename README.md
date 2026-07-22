@@ -9,6 +9,7 @@ SharpBoxAI implements the [Model Context Protocol (MCP)](https://modelcontextpro
 - **Read the inbox**: list unread and read messages, fetch individual messages including text content and attachment names — strictly read-only, without touching the seen flag
 - **Organize the inbox**: move messages to folders, put them in the trash (nothing is deleted permanently), mark them as spam
 - **Manage flags**: mark as read/unread, flag/unflag messages
+- **Two transports**: runs over stdio by default (for a local client such as Claude Desktop) or, with `--http`, as a Streamable HTTP server — so it can live on a small always-on machine (e.g. a Raspberry Pi) and serve other clients on the home network
 - **Provider-independent**: works with any IMAP server; special folders (trash, spam) are detected via the IMAP `SPECIAL-USE` extension, with a fallback to common German and English folder names for servers that don't support it
 - **Secure configuration**: credentials are best kept in .NET user secrets or environment variables, so they never end up in files checked into the repository
 
@@ -30,7 +31,7 @@ SharpBoxAI implements the [Model Context Protocol (MCP)](https://modelcontextpro
 
 ```
 src/
-├── SharpBoxAI.ImapMcpServer/            # The MCP server (stdio transport)
+├── SharpBoxAI.ImapMcpServer/            # The MCP server (stdio + HTTP transport)
 │   ├── Program.cs                       # Host setup, configuration, MCP registration
 │   ├── EmailTools.cs                    # All MCP tools (MailKit/IMAP)
 │   ├── ImapSettings.cs                  # Configuration model
@@ -104,6 +105,28 @@ Then restart Claude Desktop — the e-mail tools are now available in the chat, 
 
 > "Summarize my unread mail and move all newsletters to the 'Newsletter' folder."
 
+### Run as an HTTP server (network / Raspberry Pi)
+
+Started without arguments, the server uses stdio (as above). Pass `--http` to run it as a Streamable HTTP server on `http://0.0.0.0:5100` instead, so other machines on your network can reach it:
+
+```bash
+dotnet run --project src/SharpBoxAI.ImapMcpServer -- --http
+```
+
+Clients then connect over HTTP rather than launching the process themselves. For Claude Code, for example:
+
+```bash
+claude mcp add --transport http imap http://<host>:5100
+```
+
+> **Note:** The HTTP endpoint is unauthenticated and binds to all interfaces. Only expose it inside a trusted network. Put authentication (e.g. a bearer token) and TLS in front of it before making it reachable from the internet.
+
+On a Raspberry Pi, publish a self-contained build and supply the credentials via environment variables (for example through a systemd `EnvironmentFile`):
+
+```bash
+dotnet publish -c Release -r linux-arm64 --self-contained
+```
+
 ### Test client
 
 The included test client starts the server, lists the available tools, and automatically calls the **read-only** tools (`list_unread_emails`, `list_read_emails`, `list_folders`, `get_email`). Tools that modify the mailbox, such as `move_email` or `delete_email`, are deliberately not executed automatically.
@@ -113,6 +136,12 @@ dotnet build
 dotnet run --project src/SharpBoxAI.ImapMcpServer.TestClient
 ```
 
+To test the HTTP transport instead, start the server with `--http` (see above) and point the test client at it — it connects to a running server rather than starting one:
+
+```bash
+dotnet run --project src/SharpBoxAI.ImapMcpServer.TestClient -- --http
+```
+
 ## Security & design decisions
 
 - **No credentials in the repository**: the checked-in `appsettings.json` ships with empty `User`/`Password` fields; user secrets and environment variables are the recommended place for real credentials.
@@ -120,7 +149,8 @@ dotnet run --project src/SharpBoxAI.ImapMcpServer.TestClient
 - **Reading really is just reading**: listing and fetching messages opens the inbox read-only and does not modify any flags.
 - **No sending of mail**: the server can only read and organize — SMTP is deliberately not included.
 - **Bounded output**: message bodies are truncated at 10,000 characters and listings are limited to the newest matches, so the MCP client's context does not overflow.
-- **Logging goes to stderr**: stdout is reserved for the MCP protocol.
+- **Logging goes to stderr**: in stdio mode stdout is reserved for the MCP protocol.
+- **HTTP is unauthenticated by design**: the `--http` transport is meant for a trusted local network. Add authentication and TLS (e.g. a reverse proxy) before exposing it beyond that.
 
 ## License
 

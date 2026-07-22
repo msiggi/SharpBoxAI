@@ -1,12 +1,11 @@
 {
   "profiles": {
-    "SharpBoxAI.ImapMcpServer": {
+    "stdio": {
+      "commandName": "Project"
+    },
+    "http": {
       "commandName": "Project",
-      "launchBrowser": true,
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "applicationUrl": "https://localhost:65149;http://localhost:65150"
+      "commandLineArgs": "--http"
     }
   }
 }
