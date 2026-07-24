@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Lokale MCP-Client-Registrierung (enthaelt die Adresse des eigenen Servers)
+.mcp.json
