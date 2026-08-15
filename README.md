@@ -158,12 +158,34 @@ docker build -t sharpboxai .
 docker run -d --name sharpboxai --restart unless-stopped -p 5100:5100 --env-file .env sharpboxai
 ```
 
+To use the pre-built image from Docker Hub instead of building on the Pi, replace `build: .` in `compose.yaml` with `image: <dockerhub-user>/sharpboxai:latest` and run `docker compose pull && docker compose up -d`.
+
 Notes:
 
 - Only the **HTTP** transport makes sense in a container. In stdio mode the MCP client starts the server process itself and talks to it over stdin/stdout — that does not fit a long-running container.
 - The container runs as the non-root `app` user and contains no credentials; they are injected as environment variables at run time.
 - `ports: "5100:5100"` publishes the endpoint on every interface of the Pi. Since the MCP endpoint is unauthenticated, keep it inside a trusted network — or bind it to `127.0.0.1:5100:5100` and put a reverse proxy with TLS and authentication in front of it.
 - Building on a Pi 5 takes a few minutes; the restore layer is cached separately, so subsequent code-only rebuilds are much faster.
+
+### Publishing the image via GitHub Actions
+
+`.github/workflows/docker-publish.yml` builds a multi-arch image (`linux/amd64` + `linux/arm64`) and pushes it to Docker Hub as `<dockerhub-user>/sharpboxai`.
+
+Two repository secrets are required (*Settings → Secrets and variables → Actions*):
+
+| Secret | Value |
+|---|---|
+| `DOCKERHUB_USERNAME` | Your Docker Hub username |
+| `DOCKERHUB_TOKEN` | A Docker Hub **access token** (*Account Settings → Personal access tokens*) with write permission — not your account password |
+
+When it runs, and what it tags:
+
+- **Push to `master`** → `latest` and `sha-<short-commit>`
+- **Tag `v1.2.3`** → `1.2.3`, `1.2` and `sha-<short-commit>`
+- **Pull request** → builds both architectures as a check, but does not push and does not log in
+- **Manually** via *Run workflow* (`workflow_dispatch`)
+
+The arm64 image is cross-compiled by the SDK (`dotnet publish -a`) rather than emulated under QEMU, so the build stage always runs natively on the amd64 runner and stays fast. Layer caching uses the GitHub Actions cache.
 
 ### Test client
 
