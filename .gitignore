@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 # Lokale MCP-Client-Registrierung (enthaelt die Adresse des eigenen Servers)
 .mcp.json
+
+# Docker-Compose-Umgebungsdatei (enthaelt IMAP-Credentials)
+.env

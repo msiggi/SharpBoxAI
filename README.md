@@ -127,6 +127,44 @@ On a Raspberry Pi, publish a self-contained build and supply the credentials via
 dotnet publish -c Release -r linux-arm64 --self-contained
 ```
 
+### Run as a Docker container
+
+The repository ships a `Dockerfile` and a `compose.yaml` that run the server in HTTP mode. The base images (`mcr.microsoft.com/dotnet/sdk:10.0` and `aspnet:10.0`) are published for `linux/arm64`, so the image builds and runs natively on a Raspberry Pi 5 — no cross-compilation and no .NET SDK installed on the Pi itself.
+
+Put the credentials into a `.env` file next to `compose.yaml` (it is git-ignored):
+
+```
+IMAP_HOST=imap.example.com
+IMAP_USER=user@example.com
+IMAP_PASSWORD=secret
+```
+
+Then build and start:
+
+```bash
+docker compose up -d --build
+```
+
+The server is reachable on port 5100 of the Pi, and clients connect the same way as with a bare-metal HTTP server:
+
+```bash
+claude mcp add --transport http imap http://<pi>:5100
+```
+
+Without compose it works just as well:
+
+```bash
+docker build -t sharpboxai .
+docker run -d --name sharpboxai --restart unless-stopped -p 5100:5100 --env-file .env sharpboxai
+```
+
+Notes:
+
+- Only the **HTTP** transport makes sense in a container. In stdio mode the MCP client starts the server process itself and talks to it over stdin/stdout — that does not fit a long-running container.
+- The container runs as the non-root `app` user and contains no credentials; they are injected as environment variables at run time.
+- `ports: "5100:5100"` publishes the endpoint on every interface of the Pi. Since the MCP endpoint is unauthenticated, keep it inside a trusted network — or bind it to `127.0.0.1:5100:5100` and put a reverse proxy with TLS and authentication in front of it.
+- Building on a Pi 5 takes a few minutes; the restore layer is cached separately, so subsequent code-only rebuilds are much faster.
+
 ### Test client
 
 The included test client starts the server, lists the available tools, and automatically calls the **read-only** tools (`list_unread_emails`, `list_read_emails`, `list_folders`, `get_email`). Tools that modify the mailbox, such as `move_email` or `delete_email`, are deliberately not executed automatically.

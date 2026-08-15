@@ -1,0 +1,12 @@
+# Build-Kontext klein halten und lokale Build-Artefakte nicht ins Image ziehen -
+# im Container wird ohnehin frisch gebaut.
+**/bin/
+**/obj/
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+scripts/
+*.user
+*.tar.gz

@@ -1,0 +1,13 @@
+services:
+  sharpboxai:
+    build: .
+    image: sharpboxai:latest
+    container_name: sharpboxai
+    restart: unless-stopped
+    # Nur im vertrauenswürdigen Heimnetz veröffentlichen - der MCP-Endpunkt ist
+    # unauthentifiziert. Für rein lokalen Zugriff auf "127.0.0.1:5100:5100" ändern.
+    ports:
+      - "5100:5100"
+    # IMAP_HOST / IMAP_USER / IMAP_PASSWORD in .env ablegen (nicht eingecheckt).
+    env_file:
+      - .env
